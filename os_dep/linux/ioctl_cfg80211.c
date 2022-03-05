@@ -297,7 +297,7 @@ static u8 rtw_chbw_to_cfg80211_chan_def(struct wiphy *wiphy, struct cfg80211_cha
 	if (!chan)
 		goto exit;
 
-	if (bw == CHANNEL_WIDTH_20) 
+	if (bw == CHANNEL_WIDTH_20)
 		chdef->width = ht ? NL80211_CHAN_WIDTH_20 : NL80211_CHAN_WIDTH_20_NOHT;
 	else if (bw == CHANNEL_WIDTH_40)
 		chdef->width = NL80211_CHAN_WIDTH_40;
@@ -331,7 +331,7 @@ static void rtw_get_chbw_from_cfg80211_chan_def(struct cfg80211_chan_def *chdef,
 		rtw_warn_on(1);
 		*ch = 0;
 		return;
-	}		
+	}
 
 	switch (chdef->width) {
 	case NL80211_CHAN_WIDTH_20_NOHT:
@@ -5775,7 +5775,7 @@ static int _cfg80211_rtw_mgmt_tx(_adapter *padapter, u8 tx_ch, u8 no_cck, const 
 
 			if (check_fwstate(&padapter->mlmepriv, _FW_LINKED))
 				ext_listen_period = 500;/*500ms*/
-#ifdef CONFIG_P2P				
+#ifdef CONFIG_P2P
 			else
 				ext_listen_period = pwdinfo->ext_listen_period;
 
@@ -6154,7 +6154,7 @@ static void cfg80211_rtw_update_mgmt_frame_register(struct wiphy *wiphy,
 #else
 	RTW_INFO(FUNC_ADPT_FMT " old_regs:%x new_regs:%x\n",
 		 FUNC_ADPT_ARG(adapter), pwdev_priv->mgmt_mask, upd->interface_stypes);
-#endif		
+#endif
 #endif
 
 	/* Wait QC Verify */
@@ -6181,6 +6181,15 @@ static void cfg80211_rtw_update_mgmt_frame_register(struct wiphy *wiphy,
 exit:
 	return;
 }
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)) || defined(BUILD_OPENWRT)
+static void cfg80211_rtw_update_mgmt_frame_registrations(struct wiphy *wiphy,
+						   struct wireless_dev *wdev,
+						   struct mgmt_frame_regs *upd)
+{
+
+}
+#endif
 
 #if defined(CONFIG_TDLS) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0))
 static int cfg80211_rtw_tdls_mgmt(struct wiphy *wiphy,
@@ -6464,13 +6473,13 @@ int	cfg80211_rtw_resume(struct wiphy *wiphy) {
 		//rtw_sitesurvey_cmd(padapter, NULL, 0, NULL, 0);
 		rtw_sitesurvey_cmd(padapter, (NDIS_802_11_SSID*)&pwrpriv->pno_ssid_list->node, pwrpriv->pnlo_info->ssid_num, NULL, 0);
 		_exit_critical_bh(&pmlmepriv->lock, &irqL);
-		
+
 		for (PNOWakeupScanWaitCnt = 0; PNOWakeupScanWaitCnt < 10; PNOWakeupScanWaitCnt++) {
 			if(check_fwstate(pmlmepriv, _FW_UNDER_SURVEY) == _FALSE)
 				break;
 			rtw_msleep_os(1000);
 		}
-		
+
 		_enter_critical_bh(&pmlmepriv->lock, &irqL);
 		cfg80211_sched_scan_results(padapter->rtw_wdev->wiphy);
 		_exit_critical_bh(&pmlmepriv->lock, &irqL);
@@ -6478,7 +6487,7 @@ int	cfg80211_rtw_resume(struct wiphy *wiphy) {
 	}
 	RTW_DBG("<== %s\n",__func__);
 	return 0;
-	
+
 }
 #endif /* CONFIG_PNO_SUPPORT */
 
@@ -7298,7 +7307,7 @@ int rtw_hostapd_acs_dump_survey(struct wiphy *wiphy, struct net_device *netdev, 
 #elif defined(CONFIG_RTW_ACS) && defined(CONFIG_BACKGROUND_NOISE_MONITOR)
 	rtw_cfg80211_set_survey_info_with_clm(padapter, idx, info);
 #else
-	RTW_ERR("%s: unknown acs operation!\n", __func__); 
+	RTW_ERR("%s: unknown acs operation!\n", __func__);
 #endif
 
 	return ret;
@@ -7375,13 +7384,16 @@ static struct cfg80211_ops rtw_cfg80211_ops = {
 	.update_ft_ies = cfg80211_rtw_update_ft_ies,
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)) || defined(COMPAT_KERNEL_RELEASE)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,8,0)) || defined(BUILD_OPENWRT)
 	.mgmt_tx = cfg80211_rtw_mgmt_tx,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0))	
+	.update_mgmt_frame_registrations = cfg80211_rtw_update_mgmt_frame_registrations,
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37)) || defined(COMPAT_KERNEL_RELEASE)
+	.mgmt_tx = cfg80211_rtw_mgmt_tx,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0))
 	.mgmt_frame_register = cfg80211_rtw_mgmt_frame_register,
 #else
 	.update_mgmt_frame_registrations = cfg80211_rtw_update_mgmt_frame_register,
-#endif	
+#endif
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35))
 	.action = cfg80211_rtw_mgmt_tx,
 #endif
@@ -7426,11 +7438,11 @@ struct wiphy *rtw_wiphy_alloc(_adapter *padapter, struct device *dev)
 #endif
 
 	rtw_cfg80211_preinit_wiphy(padapter, wiphy);
-	
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
 	/* init regulary domain */
 	rtw_regd_init(wiphy);
-#endif	
+#endif
 
 	RTW_INFO(FUNC_WIPHY_FMT"\n", FUNC_WIPHY_ARG(wiphy));
 
